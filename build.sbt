@@ -2,7 +2,7 @@ name := "subcut"
 
 organization := "com.escalatesoft.subcut"
 
-version := "2.0"
+version := "2.0.1-SNAPSHOT"
 
 crossScalaVersions := Seq("2.10.0", "2.9.2", "2.9.1", "2.9.0-1", "2.9.0")
 

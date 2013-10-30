@@ -7,7 +7,7 @@ package com.escalatesoft.subcut.inject
  * Time: 11:41 AM
  */
 
-import org.scalatest.{SeveredStackTraces, FunSuite}
+import org.scalatest.{ SeveredStackTraces, FunSuite }
 import org.scalatest.matchers.ShouldMatchers
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -26,7 +26,7 @@ class InjectionTest extends FunSuite with ShouldMatchers with SeveredStackTraces
     }
 
     val injected = new SomeInjectedStuff
-    injected.stringThemAll should be (List("Hello World", "This is the testConfig", "This is the testConfig"))
+    injected.stringThemAll should be(List("Hello World", "This is the testConfig", "This is the testConfig"))
   }
 
   test("Create an abstract class and then instantiate it with injected resources") {
@@ -40,10 +40,10 @@ class InjectionTest extends FunSuite with ShouldMatchers with SeveredStackTraces
     }
 
     val injected = new SomeAbstractInjectedStuff with BoundToTrial
-    injected.stringThemAll should be (List("Hello World", "This is the testConfig", "This is the testConfig"))
+    injected.stringThemAll should be(List("Hello World", "This is the testConfig", "This is the testConfig"))
 
     val injected2 = new SomeAbstractInjectedStuff { val bindingModule = TrialBindingModule }
-    injected2.stringThemAll should be (List("Hello World", "This is the testConfig", "This is the testConfig"))
+    injected2.stringThemAll should be(List("Hello World", "This is the testConfig", "This is the testConfig"))
   }
 
   test("Use a lazy instance and make sure it works, and the same instance is always injected") {
@@ -58,23 +58,52 @@ class InjectionTest extends FunSuite with ShouldMatchers with SeveredStackTraces
 
     println("Before first usage of the lazy instance")
     // the impl2 in each case should return "This is the testConfig fixed"
-    injected1.impl2.someMethod should be ("This is the testConfig fixed")
-    injected2.impl2.someMethod should be ("This is the testConfig fixed")
+    injected1.impl2.someMethod should be("This is the testConfig fixed")
+    injected2.impl2.someMethod should be("This is the testConfig fixed")
 
     // now, check the identities of the impl1s and impl2s. The impl1s should be non-identical, while the impl2s
     // should be identical
-    (injected1.impl1 ne injected2.impl1) should be (true)
-    (injected1.impl2 eq injected2.impl2) should be (true)
+    (injected1.impl1 ne injected2.impl1) should be(true)
+    (injected1.impl2 eq injected2.impl2) should be(true)
   }
+
+  test("Inject from bindings if available") {
+    class SomeInjectedStuff extends Injectable with BoundToTrial {
+      val impl1 = injectInstance[TestTrait]
+      val impl2 = injectInstance[TestTrait]("something else")
+      val impl3 = injectInstance[TestTrait]('testConfig)
+
+      def stringThemAll(): List[String] =
+        List(impl1.someMethod(), impl2.someMethod(), impl3.someMethod())
+    }
+
+    val injected = new SomeInjectedStuff
+    injected.stringThemAll should be(List("Hello World", "This is the testConfig", "This is the testConfig"))
+  }
+
+  test("Inject new instances if not found in the binding module") {
+    class SomeInjectedStuff extends Injectable with EmptyModule {
+      val impl1 = injectInstance[TestImpl]
+      val impl2 = injectInstance[AlternativeImpl]("something else")
+      val impl3 = injectInstance[AlternativeImpl]('testConfig)
+
+      def stringThemAll(): List[String] =
+        List(impl1.someMethod(), impl2.someMethod(), impl3.someMethod())
+    }
+
+    val injected = new SomeInjectedStuff
+    injected.stringThemAll should be(List("Hello World", "This is the testConfig", "This is the testConfig"))
+  }
+
 }
 
 object TrialBindingModule extends MutableBindingModule {
-  bind [TestTrait] toProvider { new TestImpl }
-  bind [TestTrait] identifiedBy 'testConfig toProvider (new AlternativeImpl)
-  bind [TestTrait] identifiedBy "something else" toProvider { new AlternativeImpl }
-  bind [TestTrait] identifiedBy 'fixed toSingle new AlternativeImpl2
+  bind[TestTrait] toProvider { new TestImpl }
+  bind[TestTrait] identifiedBy 'testConfig toProvider (new AlternativeImpl)
+  bind[TestTrait] identifiedBy "something else" toProvider { new AlternativeImpl }
+  bind[TestTrait] identifiedBy 'fixed toSingle new AlternativeImpl2
 
-  bind [AnotherTrait] toSingle new AnotherTraitImpl
+  bind[AnotherTrait] toSingle new AnotherTraitImpl
   this.showMap()
 }
 
@@ -82,27 +111,32 @@ trait BoundToTrial extends BoundToModule {
   val bindingModule = TrialBindingModule
 }
 
+object EmptyBindingModule extends MutableBindingModule {}
+trait EmptyModule extends MutableBindingModule {
+  val bindingModule = EmptyBindingModule
+}
+
 trait TestTrait {
-    def someMethod() : String
+  def someMethod(): String
 }
 
 trait AnotherTrait {
-    def someOtherMethod() : Int
+  def someOtherMethod(): Int
 }
 
 class TestImpl extends TestTrait {
-    override def someMethod() : String = "Hello World"
+  override def someMethod(): String = "Hello World"
 }
 
 class AlternativeImpl extends TestTrait {
-    override def someMethod() : String = "This is the testConfig"
+  override def someMethod(): String = "This is the testConfig"
 }
 
 class AlternativeImpl2 extends TestTrait {
-    println("Creating AlternativeImpl2 instance")
-    override def someMethod() : String = "This is the testConfig fixed"
+  println("Creating AlternativeImpl2 instance")
+  override def someMethod(): String = "This is the testConfig fixed"
 }
 
 class AnotherTraitImpl extends AnotherTrait {
-    override def someOtherMethod() = 5
+  override def someOtherMethod() = 5
 }

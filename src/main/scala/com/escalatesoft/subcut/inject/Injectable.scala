@@ -42,6 +42,19 @@ trait Injectable {
     bindingModule.inject[T](Some(name))
 
   /**
+   * Inject an instance for the given Class if found in bindings. If not found instantiate the class.
+   * Only supports zero constructor classes
+   */
+  def injectInstance[T <: Any](implicit m: scala.reflect.Manifest[T]): T =
+    bindingModule.injectInstance[T](None)
+
+  def injectInstance[T <: Any](name: String)(implicit m: scala.reflect.Manifest[T]): T =
+    bindingModule.injectInstance[T](Some(name))
+
+  def injectInstance[T <: Any](symbol: Symbol)(implicit m: scala.reflect.Manifest[T]): T =
+    bindingModule.injectInstance[T](Some(symbol.name))
+
+  /**
    * Inject an instance for the given trait based on the class type only if there is no instance already provided.
    * If no instance is provided (i.e. the existing impl passed in is null) and no binding is available to match, a
    * BindingException will be thrown. If an existing impl is provided (not null), then the binding will not be
